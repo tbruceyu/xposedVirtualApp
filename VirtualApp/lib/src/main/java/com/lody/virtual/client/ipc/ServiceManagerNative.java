@@ -19,6 +19,7 @@ public class ServiceManagerNative {
 
 	public static final String PACKAGE = "package";
 	public static final String ACTIVITY = "activity";
+	public static final String STARTUP_ACTIVITY = "startup_activity";
 	public static final String USER = "user";
 	public static final String APP = "app";
 	public static final String ACCOUNT = "account";

@@ -19,6 +19,7 @@ import com.lody.virtual.server.pm.VAppManagerService;
 import com.lody.virtual.server.pm.VPackageManagerService;
 import com.lody.virtual.server.pm.VUserManagerService;
 import com.lody.virtual.service.interfaces.IServiceFetcher;
+import com.tby.main.am.StartupActivityManagerService;
 
 /**
  * @author Lody
@@ -48,6 +49,8 @@ public final class BinderProvider extends BaseContentProvider {
 			JobSchedulerService.systemReady(context);
 			addService(ServiceManagerNative.JOB, JobSchedulerService.getStub());
 		}
+		StartupActivityManagerService.systemReady(context);
+		addService(ServiceManagerNative.STARTUP_ACTIVITY, StartupActivityManagerService.get());
 		return true;
 	}
 
