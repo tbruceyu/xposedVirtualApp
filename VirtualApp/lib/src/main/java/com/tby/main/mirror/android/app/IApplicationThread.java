@@ -11,5 +11,5 @@ public class IApplicationThread {
             "android.app.ProfilerInfo", "android.os.Bundle", "android.app.IInstrumentationWatcher",
             "android.app.IUiAutomationConnection", "int", "boolean", "boolean", "boolean", "android.content.res.Configuration",
             "android.content.res.CompatibilityInfo", "java.util.Map", "android.os.Bundle"})
-    public static RefMethod<Boolean> bindApplication;
+    public static RefMethod<Void> bindApplication;
 }

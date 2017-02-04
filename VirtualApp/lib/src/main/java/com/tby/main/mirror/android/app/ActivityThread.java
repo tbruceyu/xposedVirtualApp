@@ -1,6 +1,7 @@
 package com.tby.main.mirror.android.app;
 
 import android.app.Instrumentation;
+import android.content.pm.ApplicationInfo;
 import android.content.res.Configuration;
 import android.os.Bundle;
 
@@ -24,6 +25,7 @@ public class ActivityThread {
         public static Class<?> TYPE = RefClass.load(AppBindData.class, "android.app.ActivityThread$AppBindData");
         public static RefObject<Configuration> config;
         public static RefObject<Object> compatInfo;
+        public static RefObject<ApplicationInfo> appInfo;
 
     }
 }

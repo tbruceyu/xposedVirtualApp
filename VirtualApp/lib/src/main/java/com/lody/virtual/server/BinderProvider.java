@@ -1,10 +1,14 @@
 package com.lody.virtual.server;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.util.Log;
 
 import com.lody.virtual.client.core.VirtualCore;
 import com.lody.virtual.client.ipc.ServiceManagerNative;
@@ -19,14 +23,29 @@ import com.lody.virtual.server.pm.VAppManagerService;
 import com.lody.virtual.server.pm.VPackageManagerService;
 import com.lody.virtual.server.pm.VUserManagerService;
 import com.lody.virtual.service.interfaces.IServiceFetcher;
-import com.tby.main.am.StartupActivityManagerService;
+import com.tby.main.client.IStartupClient;
 
 /**
  * @author Lody
  */
 public final class BinderProvider extends BaseContentProvider {
-
 	private final ServiceFetcher mServiceFetcher = new ServiceFetcher();
+	private IStartupClient startupClient;
+
+	BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			Bundle bundle = intent.getExtras();
+			IBinder binder = BundleCompat.getBinder(bundle, ServiceManagerNative.EXTRA_CLIENT_BINDER);
+			try {
+				Log.d("yutao", "onReceive");
+				startupClient = IStartupClient.Stub.asInterface(binder);
+				startupClient.bindService(mServiceFetcher);
+			} catch (Throwable e) {
+				e.printStackTrace();
+			}
+		}
+	};
 
 	@Override
 	public boolean onCreate() {
@@ -49,8 +68,11 @@ public final class BinderProvider extends BaseContentProvider {
 			JobSchedulerService.systemReady(context);
 			addService(ServiceManagerNative.JOB, JobSchedulerService.getStub());
 		}
-		StartupActivityManagerService.systemReady(context);
-		addService(ServiceManagerNative.STARTUP_ACTIVITY, StartupActivityManagerService.get());
+
+		IntentFilter intentFilter = new IntentFilter();
+		intentFilter.addAction(ServiceManagerNative.DEFAULT_ACTION);
+		context.registerReceiver(broadcastReceiver, intentFilter);
+		Log.d("yutao", "registerReceiver");
 		return true;
 	}
 

@@ -102,4 +102,6 @@ interface IActivityManager {
     void removePendingIntent(IBinder binder);
 
     void processRestarted(in String packageName, in String processName, int userId);
+
+    boolean attachApplication(IBinder appThread, String packageName, int userId);
 }

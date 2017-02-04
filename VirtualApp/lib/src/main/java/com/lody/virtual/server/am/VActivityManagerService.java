@@ -8,6 +8,7 @@ import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
@@ -26,6 +27,7 @@ import android.os.Parcel;
 import android.os.Process;
 import android.os.RemoteException;
 import android.os.SystemClock;
+import android.util.Log;
 
 import com.lody.virtual.client.IVClient;
 import com.lody.virtual.client.core.VirtualCore;
@@ -51,6 +53,9 @@ import com.lody.virtual.server.pm.VPackageManagerService;
 import com.lody.virtual.server.secondary.BinderDelegateService;
 import com.lody.virtual.service.IActivityManager;
 import com.lody.virtual.service.interfaces.IProcessObserver;
+import com.tby.main.client.IStartupClient;
+import com.tby.main.mirror.android.app.ActivityThread;
+import com.tby.main.mirror.android.app.IApplicationThread;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -71,6 +76,8 @@ import static com.lody.virtual.os.VUserHandle.getUserId;
  *
  */
 public class VActivityManagerService extends IActivityManager.Stub {
+	Object activityThread;
+	private Context context;
 
 	private static final boolean BROADCAST_NOT_STARTED_PKG = false;
 
@@ -118,6 +125,8 @@ public class VActivityManagerService extends IActivityManager.Stub {
 		}
 		sService.set(this);
 
+		activityThread = ActivityThread.currentActivityThread.call();
+		sService.set(this);
 	}
 
 
@@ -1010,5 +1019,26 @@ public class VActivityManagerService extends IActivityManager.Stub {
 				result.finish();
 			}
 		}
+	}
+
+	@Override
+	public boolean attachApplication(IBinder appThread, String packageName, int userId) throws RemoteException {
+		int callingPid = Binder.getCallingPid();
+		attachApplicationLocked(appThread, packageName, userId);
+		return true;
+	}
+
+	private void attachApplicationLocked(IBinder appThread, String packageName, int userId) {
+		Log.d("yutao", "attachApplicationLocked:" + packageName);
+//		ApplicationInfo appInfo = VPackageManagerService.get().getApplicationInfo(packageName, 0, userId);
+//        String processName = packageName +"_v";
+//        ProcessRecord processRecord = new ProcessRecord(appInfo, processName, userId, 0);
+		IInterface thread = ApplicationThreadNative.asInterface.call(appThread);
+		Object activityThread_mBoundApplication = ActivityThread.mBoundApplication.get(activityThread);
+		ApplicationInfo appInfo = ActivityThread.AppBindData.appInfo.get(activityThread_mBoundApplication);
+		IApplicationThread.bindApplication.call(thread, packageName + ":ptby", appInfo, null, null, null, null, null, null,
+				0, false, false, false, ActivityThread.AppBindData.config.get(activityThread_mBoundApplication),
+				ActivityThread.AppBindData.compatInfo.get(activityThread_mBoundApplication),
+				null, ActivityThread.mCoreSettings.get(activityThread));
 	}
 }

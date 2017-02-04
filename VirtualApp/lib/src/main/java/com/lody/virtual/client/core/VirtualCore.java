@@ -18,6 +18,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Process;
 import android.os.RemoteException;
+import android.util.Log;
 
 import com.lody.virtual.client.env.Constants;
 import com.lody.virtual.client.env.VirtualRuntime;
@@ -444,7 +445,7 @@ public final class VirtualCore {
 	/**
 	 * Process type
 	 */
-	private enum ProcessType {
+	public enum ProcessType {
 		/**
 		 * Server process
 		 */
