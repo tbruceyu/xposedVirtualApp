@@ -23,8 +23,19 @@ LOCAL_SRC_FILES := core.cpp \
 				   MSHook/util.cpp \
 				   MSHook/x86.cpp
 
-LOCAL_LDLIBS := -llog
+LOCAL_LDLIBS := -llog -ljnigraphics
 
 include $(BUILD_SHARED_LIBRARY)
 
 
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := process_launcher
+
+LOCAL_LDLIBS    := -llog
+LOCAL_CFLAGS = -ffast-math -O3 -funroll-loops -Wno-write-strings
+
+
+LOCAL_SRC_FILES := process_launcher.cpp
+
+include $(BUILD_SHARED_LIBRARY)

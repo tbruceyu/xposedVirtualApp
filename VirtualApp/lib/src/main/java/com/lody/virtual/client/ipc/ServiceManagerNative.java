@@ -51,7 +51,6 @@ public class ServiceManagerNative {
 		public void bindService(IBinder serverBinder) throws RemoteException {
 			synchronized (ServiceManagerNative.class) {
 				sFetcher = IServiceFetcher.Stub.asInterface(serverBinder);
-				Log.d("yutao", "bindService");
 				ServiceManagerNative.class.notify();
 			}
 		}
@@ -96,7 +95,10 @@ public class ServiceManagerNative {
 			BundleCompat.putBinder(bundle, ServiceManagerNative.EXTRA_CLIENT_BINDER, clientService);
 			intent.putExtras(bundle);
 			intent.setAction(ServiceManagerNative.DEFAULT_ACTION);
-			com.tby.main.mirror.android.app.IActivityManager.broadcastIntent.call(RuntimeInit.getInstance().getActivityManagerPatch().originalAms, null, intent, null, null, 0, null, null, null, -1, null, true, false, VUserHandle.getUserId(Process.myUid()));
+			com.tby.main.mirror.android.app.IActivityManager.broadcastIntent.call(
+					RuntimeInit.getInstance().getActivityManagerPatch().originalAms, null, intent,
+					null, null, 0, null, null, null, -1, null, true, false,
+					VUserHandle.getUserId(Process.myUid()));
 			ServiceManagerNative.class.wait();
 		}
 	}

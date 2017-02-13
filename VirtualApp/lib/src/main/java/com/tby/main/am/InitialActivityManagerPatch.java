@@ -2,12 +2,10 @@ package com.tby.main.am;
 
 import android.os.IBinder;
 import android.os.IInterface;
-import android.os.Process;
 
 import com.lody.virtual.client.hook.base.HookDelegate;
 import com.lody.virtual.client.hook.base.PatchDelegate;
 import com.lody.virtual.client.hook.base.StaticHook;
-import com.lody.virtual.os.VUserHandle;
 import com.tby.main.RuntimeInit;
 import com.tby.main.mirror.android.app.ActivityManagerNative;
 import com.tby.main.mirror.android.app.IActivityManager;
@@ -24,8 +22,9 @@ import mirror.android.util.Singleton;
 
 
 public class InitialActivityManagerPatch extends PatchDelegate<HookDelegate<IInterface>> {
-    private String packageName;
+    private int vpid;
     public Object originalAms;
+    private int vuid;
 
     public InitialActivityManagerPatch() {
         super(new HookDelegate<IInterface>(ActivityManagerNative.getDefault.call()));
@@ -36,8 +35,12 @@ public class InitialActivityManagerPatch extends PatchDelegate<HookDelegate<IInt
         }
     }
 
-    public void setPackageName(String packageName) {
-        this.packageName = packageName;
+    public void setVpid(int vpid) {
+        this.vpid = vpid;
+    }
+
+    public void setVuid(int vuid) {
+        this.vuid = vuid;
     }
 
     @Override
@@ -65,7 +68,7 @@ public class InitialActivityManagerPatch extends PatchDelegate<HookDelegate<IInt
 //                Object packageInfo = ContextImpl.mPackageInfo.get(context);
 //                Application application = LoadedApk.makeApplication.call(packageInfo, false, null);
                 Object appThread = args[0];
-                RuntimeInit.getInstance().getActivityManager().attachApplication((IBinder) appThread, packageName, VUserHandle.getUserId(Process.myUid()));
+                RuntimeInit.getInstance().getActivityManager().attachApplication((IBinder) appThread, vpid, vuid);
                 return null;
             }
         });

@@ -12,6 +12,8 @@ import android.os.IBinder;
 import android.os.IInterface;
 import android.os.RemoteException;
 
+import com.lody.virtual.client.IVClient;
+import com.lody.virtual.client.VClientImpl;
 import com.lody.virtual.client.core.VirtualCore;
 import com.lody.virtual.client.env.VirtualRuntime;
 import com.lody.virtual.helper.compat.ActivityManagerCompat;
@@ -433,6 +435,22 @@ public class VActivityManager {
 		Intent newIntent = ComponentUtils.redirectBroadcastIntent(intent, userId);
 		if (newIntent != null) {
 			VirtualCore.get().getContext().sendBroadcast(newIntent);
+		}
+	}
+
+	public void attachClientProcess(int pid, IVClient client) {
+		try {
+			getService().attachClientProcess(pid, client);
+		} catch (RemoteException e) {
+			VirtualRuntime.crash(e);
+		}
+	}
+
+	public IBinder getPendingProcessToken(int vpid) {
+		try {
+			return getService().getPendingProcessToken(vpid);
+		} catch (RemoteException e) {
+			return VirtualRuntime.crash(e);
 		}
 	}
 

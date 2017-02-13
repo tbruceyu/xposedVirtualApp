@@ -31,7 +31,6 @@ public final class RefClass {
         try {
             return load(mappingClass, Class.forName(className));
         } catch (Exception e) {
-            e.printStackTrace();
             return null;
         }
     }

@@ -53,6 +53,7 @@ import com.lody.virtual.server.pm.VPackageManagerService;
 import com.lody.virtual.server.secondary.BinderDelegateService;
 import com.lody.virtual.service.IActivityManager;
 import com.lody.virtual.service.interfaces.IProcessObserver;
+import com.tby.main.ProcessLauncher;
 import com.tby.main.client.IStartupClient;
 import com.tby.main.mirror.android.app.ActivityThread;
 import com.tby.main.mirror.android.app.IApplicationThread;
@@ -76,7 +77,8 @@ import static com.lody.virtual.os.VUserHandle.getUserId;
  *
  */
 public class VActivityManagerService extends IActivityManager.Stub {
-	Object activityThread;
+	private Object activityThread;
+	private SparseArray<ProcessRecord> penddingProcesses = new SparseArray<>();
 	private Context context;
 
 	private static final boolean BROADCAST_NOT_STARTED_PKG = false;
@@ -110,6 +112,7 @@ public class VActivityManagerService extends IActivityManager.Stub {
 	}
 
 	public void onCreate(Context context) {
+		this.context = context;
 		AttributeCache.init(context);
 		PackageManager pm = context.getPackageManager();
 		PackageInfo packageInfo = null;
@@ -578,11 +581,30 @@ public class VActivityManagerService extends IActivityManager.Stub {
 		}
 	}
 
-	private int parseVPid(String stubProcessName) {
+	public static int parseVPid(String stubProcessName) {
 		String prefix = VirtualCore.get().getHostPkg() + ":p";
 		if (stubProcessName != null && stubProcessName.startsWith(prefix)) {
 			try {
-				return Integer.parseInt(stubProcessName.substring(prefix.length()));
+				int vuIndex = stubProcessName.lastIndexOf(":u");
+				vuIndex = vuIndex > 0 ? vuIndex : stubProcessName.length();
+				String pidStr = stubProcessName.substring(prefix.length(), vuIndex);
+				return Integer.parseInt(pidStr);
+			} catch (NumberFormatException e) {
+				e.printStackTrace();
+			}
+		}
+		return -1;
+	}
+
+	public static int parseVUid(String stubProcessName) {
+		if (stubProcessName != null) {
+			try {
+				int vuIndex = stubProcessName.lastIndexOf(":u");
+				if (vuIndex < 0) {
+					return -1;
+				}
+				String pidStr = stubProcessName.substring(vuIndex + 2, stubProcessName.length());
+				return Integer.parseInt(pidStr);
 			} catch (NumberFormatException e) {
 				e.printStackTrace();
 			}
@@ -648,6 +670,7 @@ public class VActivityManagerService extends IActivityManager.Stub {
 		synchronized (mProcessNames) {
 			mProcessNames.put(app.processName, app.vuid, app);
 			mPidsSelfLocked.put(app.pid, app);
+			penddingProcesses.remove(app.vpid);
 		}
 	}
 
@@ -709,18 +732,27 @@ public class VActivityManagerService extends IActivityManager.Stub {
 
 	private ProcessRecord performStartProcessLocked(int vuid, int vpid, ApplicationInfo info, String processName) {
 		ProcessRecord app = new ProcessRecord(info, processName, vuid, vpid);
-		Bundle extras = new Bundle();
-		BundleCompat.putBinder(extras, "_VA_|_binder_", app);
-		extras.putInt( "_VA_|_vuid_", vuid);
-		extras.putString("_VA_|_process_", processName);
-		extras.putString("_VA_|_pkg_", info.packageName);
-		Bundle res = ProviderCall.call(StubManifest.getStubAuthority(vpid), "_VA_|_init_process_", null, extras);
-		if (res == null) {
-			return null;
+		penddingProcesses.put(vpid, app);
+		ApplicationInfo myApplicationInfo = context.getApplicationInfo();
+		ProcessLauncher.launchProcess(vpid, vuid, myApplicationInfo.sourceDir, myApplicationInfo.dataDir);
+		synchronized (app) {
+			try {
+				app.wait();
+			} catch (InterruptedException e) {
+			}
 		}
-		int pid = res.getInt("_VA_|_pid_");
-		IBinder clientBinder = BundleCompat.getBinder(res, "_VA_|_client_");
-		attachClient(pid, clientBinder);
+//		Bundle extras = new Bundle();
+//		BundleCompat.putBinder(extras, "_VA_|_binder_", app);
+//		extras.putInt( "_VA_|_vuid_", vuid);
+//		extras.putString("_VA_|_process_", processName);
+//		extras.putString("_VA_|_pkg_", info.packageName);
+//		Bundle res = ProviderCall.call(StubManifest.getStubAuthority(vpid), "_VA_|_init_process_", null, extras);
+//		if (res == null) {
+//			return null;
+//		}
+//		int pid = res.getInt("_VA_|_pid_");
+//		IBinder clientBinder = BundleCompat.getBinder(res, "_VA_|_client_");
+//		attachClient(pid, clientBinder);
 		return app;
 	}
 
@@ -1022,21 +1054,36 @@ public class VActivityManagerService extends IActivityManager.Stub {
 	}
 
 	@Override
-	public boolean attachApplication(IBinder appThread, String packageName, int userId) throws RemoteException {
-		int callingPid = Binder.getCallingPid();
-		attachApplicationLocked(appThread, packageName, userId);
+	public boolean attachApplication(IBinder appThread, int vpid, int vuid) throws RemoteException {
+		attachApplicationLocked(appThread, vpid, vuid);
 		return true;
 	}
 
-	private void attachApplicationLocked(IBinder appThread, String packageName, int userId) {
-		Log.d("yutao", "attachApplicationLocked:" + packageName);
+	@Override
+	public IBinder getPendingProcessToken(int vpid) throws RemoteException {
+		return penddingProcesses.get(vpid);
+	}
+
+	@Override
+	public void attachClientProcess(int pid, IVClient client) throws RemoteException {
+		attachClient(pid, client.asBinder());
+	}
+
+	private void attachApplicationLocked(IBinder appThread, int vpid, int vuid) {
 //		ApplicationInfo appInfo = VPackageManagerService.get().getApplicationInfo(packageName, 0, userId);
 //        String processName = packageName +"_v";
 //        ProcessRecord processRecord = new ProcessRecord(appInfo, processName, userId, 0);
+		ProcessRecord processRecord = penddingProcesses.get(vpid);
+		if (processRecord != null) {
+			synchronized (processRecord) {
+				processRecord.notify();
+			}
+		}
 		IInterface thread = ApplicationThreadNative.asInterface.call(appThread);
 		Object activityThread_mBoundApplication = ActivityThread.mBoundApplication.get(activityThread);
 		ApplicationInfo appInfo = ActivityThread.AppBindData.appInfo.get(activityThread_mBoundApplication);
-		IApplicationThread.bindApplication.call(thread, packageName + ":ptby", appInfo, null, null, null, null, null, null,
+		Log.d("yutao", "package:" + appInfo.packageName + ":p" + vpid + ":u" + vuid);
+		IApplicationThread.bindApplication.call(thread, appInfo.packageName + ":p" + vpid + ":u" + vuid, appInfo, null, null, null, null, null, null,
 				0, false, false, false, ActivityThread.AppBindData.config.get(activityThread_mBoundApplication),
 				ActivityThread.AppBindData.compatInfo.get(activityThread_mBoundApplication),
 				null, ActivityThread.mCoreSettings.get(activityThread));

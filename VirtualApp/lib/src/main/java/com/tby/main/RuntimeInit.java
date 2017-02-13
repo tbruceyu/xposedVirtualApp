@@ -1,5 +1,7 @@
 package com.tby.main;
 
+import android.util.Log;
+
 import com.lody.virtual.client.ipc.VActivityManager;
 import com.lody.virtual.helper.utils.Reflect;
 import com.lody.virtual.service.IActivityManager;
@@ -28,8 +30,10 @@ public class RuntimeInit {
     }
 
     private void start(String[] args) {
-        String packageName = args[1];
-        activityManagerPatch.setPackageName(packageName);
+        int vpid = Integer.valueOf(args[1]);
+        int vuid = Integer.valueOf(args[2]);
+        activityManagerPatch.setVpid(vpid);
+        activityManagerPatch.setVuid(vuid);
         try {
             activityManager = VActivityManager.get().getService();
             startActivityThread();

@@ -10,6 +10,7 @@ import android.app.Notification;
 import android.app.IServiceConnection;
 import android.app.IActivityManager.ContentProviderHolder;
 import com.lody.virtual.service.interfaces.IProcessObserver;
+import com.lody.virtual.client.IVClient;
 
 
 interface IActivityManager {
@@ -103,5 +104,9 @@ interface IActivityManager {
 
     void processRestarted(in String packageName, in String processName, int userId);
 
-    boolean attachApplication(IBinder appThread, String packageName, int userId);
+    IBinder getPendingProcessToken(int vpid);
+
+    boolean attachApplication(IBinder appThread, int vpid, int vuid);
+
+    void attachClientProcess(int pid, IVClient client);
 }

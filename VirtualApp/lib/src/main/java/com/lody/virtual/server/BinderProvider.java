@@ -8,7 +8,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
-import android.util.Log;
 
 import com.lody.virtual.client.core.VirtualCore;
 import com.lody.virtual.client.ipc.ServiceManagerNative;
@@ -38,7 +37,6 @@ public final class BinderProvider extends BaseContentProvider {
 			Bundle bundle = intent.getExtras();
 			IBinder binder = BundleCompat.getBinder(bundle, ServiceManagerNative.EXTRA_CLIENT_BINDER);
 			try {
-				Log.d("yutao", "onReceive");
 				startupClient = IStartupClient.Stub.asInterface(binder);
 				startupClient.bindService(mServiceFetcher);
 			} catch (Throwable e) {
@@ -72,7 +70,6 @@ public final class BinderProvider extends BaseContentProvider {
 		IntentFilter intentFilter = new IntentFilter();
 		intentFilter.addAction(ServiceManagerNative.DEFAULT_ACTION);
 		context.registerReceiver(broadcastReceiver, intentFilter);
-		Log.d("yutao", "registerReceiver");
 		return true;
 	}
 

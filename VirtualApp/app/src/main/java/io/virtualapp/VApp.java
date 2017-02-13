@@ -4,15 +4,24 @@ import android.app.Application;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.os.Bundle;
+import android.os.ConditionVariable;
+import android.os.IBinder;
+import android.os.Process;
 
+import com.lody.virtual.client.VClientImpl;
 import com.lody.virtual.client.core.InstallStrategy;
 import com.lody.virtual.client.core.VirtualCore;
 import com.lody.virtual.client.ipc.ServiceManagerNative;
+import com.lody.virtual.client.ipc.VActivityManager;
 import com.lody.virtual.client.stub.StubManifest;
+import com.lody.virtual.helper.compat.BundleCompat;
 import com.lody.virtual.helper.proto.InstallResult;
 import com.lody.virtual.helper.utils.VLog;
+import com.lody.virtual.server.am.VActivityManagerService;
 
 import jonathanfinerty.once.Once;
+import mirror.android.app.ActivityThread;
 
 /**
  * @author Lody
@@ -65,6 +74,8 @@ public class VApp extends Application {
         } else if (VirtualCore.get().isVAppProcess()) {
             VirtualCore.get().setComponentDelegate(new MyComponentDelegate());
             VirtualCore.get().setPhoneInfoDelegate(new MyPhoneInfoDelegate());
+            // attach to virtual server
+            initVirtualProcess();
         }
     }
 
@@ -92,4 +103,20 @@ public class VApp extends Application {
         }
     }
 
+    private void initVirtualProcess() {
+        ConditionVariable lock = VirtualCore.get().getInitLock();
+        if (lock != null) {
+            lock.block();
+        }
+        Object mainThread = ActivityThread.currentActivityThread.call();
+
+        String processName = ActivityThread.getProcessName.call(mainThread);
+        int vpid = VActivityManagerService.parseVPid(processName);
+        int vuid = VActivityManagerService.parseVUid(processName);
+        IBinder token = VActivityManager.get().getPendingProcessToken(vpid);
+
+        VClientImpl client = VClientImpl.getClient();
+        client.initProcess(token, vuid);
+        VActivityManager.get().attachClientProcess(Process.myPid(), client);
+    }
 }
